@@ -1,4 +1,11 @@
 #! /bin/bash
+# create csv file lists by dataset types
+python src/autoIngest.py -l
+
+# create ecsv files from csv files
+python src/autoIngest.py -e
+# use -f <datasetType> to restart from a given datasetType
+
 # setup skymap
 python src/autoIngest.py -s
 
