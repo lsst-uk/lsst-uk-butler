@@ -1010,7 +1010,8 @@ def main(argv):
         for task in tasks:
             tasks[task] = True
 
-    # create ecsv directory
+    # create csv/ecsv directory
+    os.makedirs(csvBaseDir, exist_ok=True)
     os.makedirs(ecsvBaseDir, exist_ok=True)
 
     try:
