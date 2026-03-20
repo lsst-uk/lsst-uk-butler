@@ -1,0 +1,46 @@
+- create ~/.env file containing the lines:
+
+REPO='/path/to/your/dp1-repository'
+DATA='/path/to/your/dp1-data-rucio'
+
+- create a directory $REPO, you'll need ~2GB diskspace for DP1v1
+- create postgresql database 'dp1' with schema 'dp1' and
+having the extension 'btree_gist'
+- create a directory '$REPO/src' and ensure you have the following
+files in there:
+allDataTypesUSDF.list
+autoIngest.py
+run_autoingests.sh
+
+- in your repository $REPO create a file 'butler-seed.yaml':
+
+registry:
+    db: postgresql://192.xx.xxx.xxx:5432/dp1
+    namespace: dp1
+
+- make sure you DON'T have a 'butler.yaml' file in $REPO
+- now you can run the ingests. they have to be run in a specific order as
+given in the bash script 'run_autoingests.sh' (I'd suggest to comment all out
+and uncomment them one by one) 
++ the first two commands [-l, -e] trawl the data to create a list of all files
+and from that a list containing lines: 'filename dimension1 dimension2 ...'
++ next is the creation of the skymap [-s]
++ then the butler is setup [-b]. this creates the 'butler.yaml' file; and
+registers the instrument and the skymap in the butler. 
++ after the setup the raw data is ingested [-w] and the coadds are registered
+and ingested [-r c, -i c]
++ when the raw data and coadds are in the visits have to be defined [-v]
++ so that the image data can be regitered and ingested [-r i, -i i]
++ after that the calibration data [-c] and the monster catalogue [-m] are
+the last distinct data to be ingested
++ now all the other data can go in [-r a, -i a]
+
+- after the ingest has finished we created some collections so the queries
+from the USDF RSP notebooks could be run the same way on the UK RSP:
+
+butler collection-chain $REPO LSSTComCam/calib LSSTComCam/calib/DM-46360,LSSTComCam/calib/DM-47447,LSSTComCam/calib/DM-47498,LSSTComCam/calib/DM-48520,LSSTComCam/calib/DM-48955,LSSTComCam/calib/DM-49734,LSSTComCam/calib/DM-46360/unbounded,LSSTComCam/calib/DM-47447/unbounded,LSSTComCam/calib/DM-47498/unbounded,LSSTComCam/calib/DM-48520/unbounded,LSSTComCam/calib/DM-48955/unbounded,LSSTComCam/calib/DM-49734/unbounded
+butler collection-chain $REPO refcats refcats/the_monster_20250219
+butler collection-chain --mode=redefine $REPO LSSTComCam/runs/DRP/DP1/DM-51335 LSSTComCam/runs/DRP/DP1/DM-51335/deep_coadd,LSSTComCam/runs/DRP/DP1/DM-51335/difference_image,LSSTComCam/runs/DRP/DP1/DM-51335/template_coadd,LSSTComCam/runs/DRP/DP1/DM-51335/visit_image
+butler collection-chain --mode=redefine $REPO LSSTComCam/runs/DRP/DP1/v29_0_0/DM-50260 LSSTComCam/runs/DRP/DP1/v29_0_0/DM-50260,LSSTComCam/calib/DM-49734,LSSTComCam/calib/DM-49734/unbounded,LSSTComCam/calib/DM-48955,LSSTComCam/calib/DM-48955/unbounded,LSSTComCam/calib/DM-48520,LSSTComCam/calib/DM-48520/unbounded,LSSTComCam/calib/DM-47498,LSSTComCam/calib/DM-47498/unbounded,LSSTComCam/calib/DM-47447,LSSTComCam/calib/DM-47447/unbounded,LSSTComCam/calib/DM-46360,LSSTComCam/calib/DM-46360/unbounded,refcats/the_monster_20250219,skymaps,LSSTComCam/calib/fgcmcal/DM-48089
+butler collection-chain --mode=redefine $REPO LSSTComCam/DP1/v1 LSSTComCam/runs/DRP/DP1/DM-51335,LSSTComCam/runs/DRP/DP1/v29_0_0/DM-50260,LSSTComCam/calib/fgcmcal/DM-48089,skymaps
+butler collection-chain --mode=redefine $REPO LSSTComCam/DP1 LSSTComCam/runs/DRP/DP1/DM-51335,LSSTComCam/runs/DRP/DP1/v29_0_0/DM-50260,LSSTComCam/calib/fgcmcal/DM-48089,skymaps,refcats/the_monster_20250219
